@@ -2,9 +2,11 @@ package repo
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/TheTeemka/task_effective_mobile_subscribe/internal/merrors"
 	"github.com/TheTeemka/task_effective_mobile_subscribe/internal/models"
 )
 
@@ -77,6 +79,9 @@ func (s *SubscriptionRepo) GetByID(ID int64) (*models.SubscriptionModel, error) 
 		&subscription.ID, &subscription.UserID, &subscription.Price,
 		&subscription.StartDate, &subscription.EndDate, &subscription.ServiceName)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, merrors.NewNotFoundErr("subscription not found")
+		}
 		return nil, err
 	}
 	return subscription, nil
@@ -88,14 +93,35 @@ func (s *SubscriptionRepo) Update(subscription *models.SubscriptionModel) error 
         SET price = $2, start_date = $3, end_date = $4, user_id = $5, service_name = $6
         WHERE id = $1`
 
-	_, err := s.DB.Exec(query, subscription.ID, subscription.Price, subscription.StartDate,
-		subscription.EndDate, subscription.UserID, subscription.ServiceName)
+	res, err := s.DB.Exec(query, subscription.ID, subscription.Price,
+		subscription.StartDate, subscription.EndDate, subscription.UserID,
+		subscription.ServiceName)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	} else if rowsAffected == 0 {
+		return merrors.NewNotFoundErr("subscription not found")
+	}
 	return err
 }
 
 func (s *SubscriptionRepo) Delete(id int64) error {
 	query := `DELETE FROM subscriptions WHERE id = $1`
-	_, err := s.DB.Exec(query, id)
+	res, err := s.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	} else if rowsAffected == 0 {
+		return merrors.NewNotFoundErr("subscription not found")
+	}
 	return err
 }
 

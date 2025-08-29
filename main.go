@@ -33,7 +33,7 @@ func main() {
 		api.GET("/:id", handler.GetSubscription)
 		api.GET("/sum", handler.GetSum)
 		api.POST("/", handler.CreateSubscription)
-		api.PUT("/:id", handler.UpdateSubscription)
+		api.PATCH("/:id", handler.UpdateSubscription)
 		api.DELETE("/:id", handler.DeleteSubscription)
 	}
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
