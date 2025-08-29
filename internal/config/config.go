@@ -1,12 +1,15 @@
 package config
 
 import (
+	"flag"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
+	Stage      string
 	PSQLSource string `mapstructure:"PSQL_SOURCE" validate:"required"`
 	Port       string `mapstructure:"PORT" validate:"required"`
 }
@@ -29,6 +32,10 @@ func LoadConfig() *Config {
 	if err := validate.Struct(cfg); err != nil {
 		panic("config validation failed: " + err.Error())
 	}
+
+	stage := flag.String("stage", "dev", "Environment stage (dev, prod)")
+	flag.Parse()
+	cfg.Stage = *stage
 
 	return &cfg
 }

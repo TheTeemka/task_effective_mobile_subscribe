@@ -2,10 +2,10 @@ package repo
 
 import (
 	"database/sql"
+	"log/slog"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/TheTeemka/task_effective_mobile_subscribe/internal/models"
-	"github.com/google/uuid"
 )
 
 type SubscriptionRepo struct {
@@ -18,21 +18,30 @@ func NewSubscriptionRepo(db *sql.DB) *SubscriptionRepo {
 
 func (s *SubscriptionRepo) Create(subscription *models.SubscriptionModel) error {
 	query := `
-        INSERT INTO subscriptions (user_id, cost, start_date, end_date, name)
+        INSERT INTO subscriptions (user_id, price, start_date, end_date, service_name)
         VALUES ($1, $2, $3, $4, $5)`
 
 	_, err := s.DB.Exec(query, subscription.UserID,
-		subscription.Cost, subscription.StartDate, subscription.EndDate, subscription.Name)
+		subscription.Price, subscription.StartDate, subscription.EndDate, subscription.ServiceName)
 	return err
 }
 
-func (s *SubscriptionRepo) FindByUserID(userID uuid.UUID) ([]*models.SubscriptionModel, error) {
-	query := `
-        SELECT id, user_id, cost, start_date, end_date, name
-        FROM subscriptions
-        WHERE user_id = $1`
+func (s *SubscriptionRepo) GetByFilters(filters *models.SubscriptionFilter) ([]*models.SubscriptionModel, error) {
 
-	rows, err := s.DB.Query(query, userID)
+	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).
+		Select("id, user_id, price, start_date, end_date, service_name").
+		From("subscriptions")
+
+	builder = filters.ToSQL(builder)
+
+	query, args, err := builder.ToSql()
+	slog.Info("GetByFilters query", "query", query, "args", args)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := s.DB.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +51,8 @@ func (s *SubscriptionRepo) FindByUserID(userID uuid.UUID) ([]*models.Subscriptio
 	for rows.Next() {
 		subscription := &models.SubscriptionModel{}
 		err := rows.Scan(
-			&subscription.ID, &subscription.UserID, &subscription.Cost,
-			&subscription.StartDate, &subscription.EndDate, &subscription.Name)
+			&subscription.ID, &subscription.UserID, &subscription.Price,
+			&subscription.StartDate, &subscription.EndDate, &subscription.ServiceName)
 		if err != nil {
 			return nil, err
 		}
@@ -57,16 +66,16 @@ func (s *SubscriptionRepo) FindByUserID(userID uuid.UUID) ([]*models.Subscriptio
 	return subscriptions, nil
 }
 
-func (s *SubscriptionRepo) FindByID(ID int64) (*models.SubscriptionModel, error) {
+func (s *SubscriptionRepo) GetByID(ID int64) (*models.SubscriptionModel, error) {
 	subscription := &models.SubscriptionModel{}
 	query := `
-        SELECT id, user_id, cost, start_date, end_date, name
+        SELECT id, user_id, price, start_date, end_date, service_name
         FROM subscriptions
         WHERE id = $1`
 
 	err := s.DB.QueryRow(query, ID).Scan(
-		&subscription.ID, &subscription.UserID, &subscription.Cost,
-		&subscription.StartDate, &subscription.EndDate, &subscription.Name)
+		&subscription.ID, &subscription.UserID, &subscription.Price,
+		&subscription.StartDate, &subscription.EndDate, &subscription.ServiceName)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +85,11 @@ func (s *SubscriptionRepo) FindByID(ID int64) (*models.SubscriptionModel, error)
 func (s *SubscriptionRepo) Update(subscription *models.SubscriptionModel) error {
 	query := `
         UPDATE subscriptions
-        SET cost = $2, start_date = $3, end_date = $4, user_id = $5, name = $6
+        SET price = $2, start_date = $3, end_date = $4, user_id = $5, service_name = $6
         WHERE id = $1`
 
-	_, err := s.DB.Exec(query, subscription.ID, subscription.Cost, subscription.StartDate,
-		subscription.EndDate, subscription.UserID, subscription.Name)
+	_, err := s.DB.Exec(query, subscription.ID, subscription.Price, subscription.StartDate,
+		subscription.EndDate, subscription.UserID, subscription.ServiceName)
 	return err
 }
 
@@ -93,23 +102,11 @@ func (s *SubscriptionRepo) Delete(id int64) error {
 func (s *SubscriptionRepo) GetSum(filters *models.SubscriptionFilter) (float64, error) {
 	var sum float64
 
-	builder := squirrel.Select("COALESCE(SUM(cost), 0)").From("subscriptions")
+	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).
+		Select("COALESCE(SUM(price), 0)").
+		From("subscriptions")
 
-	if filters.UserID != uuid.Nil {
-		builder = builder.Where(squirrel.Eq{"user_id": filters.UserID})
-	}
-
-	if filters.Name != "" {
-		builder = builder.Where(squirrel.Eq{"name": filters.Name})
-	}
-
-	if !filters.From.IsZero() {
-		builder = builder.Where(squirrel.GtOrEq{"start_date": filters.From})
-	}
-
-	if !filters.To.IsZero() {
-		builder = builder.Where(squirrel.LtOrEq{"end_date": filters.To})
-	}
+	builder = filters.ToSQL(builder)
 
 	query, args, err := builder.ToSql()
 	if err != nil {
