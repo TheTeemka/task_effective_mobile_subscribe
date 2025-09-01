@@ -13,7 +13,7 @@ type SubscriptionFilter struct {
 	UserID      uuid.UUID
 	ServiceName string
 	From        time.Time
-	To          time.Time
+	Till        time.Time
 }
 
 func NewSubscriptionFilterFromURL(q url.Values) (*SubscriptionFilter, error) {
@@ -39,20 +39,20 @@ func NewSubscriptionFilterFromURL(q url.Values) (*SubscriptionFilter, error) {
 		filter.From = from
 	}
 
-	if toStr := q.Get("to"); toStr != "" {
+	if toStr := q.Get("till"); toStr != "" {
 		to, err := time.Parse(TimeFormat, toStr)
 		if err != nil {
-			return nil, merrors.NewValidationError("Invalid to date")
+			return nil, merrors.NewValidationError("Invalid till_date")
 		}
-		filter.To = to
+		filter.Till = to
 	}
 
 	return filter, nil
 }
 
 func (f *SubscriptionFilter) Validate() error {
-	if !f.From.IsZero() && !f.To.IsZero() && f.From.After(f.To) {
-		return merrors.NewValidationError("from date must be before or equal to to date")
+	if !f.From.IsZero() && !f.Till.IsZero() && f.From.After(f.Till) {
+		return merrors.NewValidationError("from_date must be before or equal to till_date")
 	}
 	return nil
 }
@@ -70,8 +70,8 @@ func (f *SubscriptionFilter) ToSQL(builder squirrel.SelectBuilder) squirrel.Sele
 		builder = builder.Where(squirrel.GtOrEq{"start_date": f.From})
 	}
 
-	if !f.To.IsZero() {
-		builder = builder.Where(squirrel.LtOrEq{"end_date": f.To})
+	if !f.Till.IsZero() {
+		builder = builder.Where(squirrel.LtOrEq{"start_date": f.Till})
 	}
 
 	return builder

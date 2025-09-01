@@ -1,16 +1,17 @@
 package merrors
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func ErrorsToHTTP(err error) int {
-	switch err.(type) {
-	case *ValidationError:
+	switch {
+	case errors.As(err, &validationError):
 		return http.StatusBadRequest
-	case *NotFoundError:
+	case errors.As(err, &notFoundError):
 		return http.StatusNotFound
 	default:
 		return http.StatusInternalServerError
@@ -22,8 +23,9 @@ type ErrorJson struct {
 }
 
 func ErrorToResponseString(err error) string {
-	switch err.(type) {
-	case *ValidationError, *NotFoundError:
+	switch {
+	case errors.As(err, &validationError) ||
+		errors.As(err, &notFoundError):
 		return err.Error()
 	default:
 		return "internal server error"
@@ -33,6 +35,8 @@ func ErrorToResponseString(err error) string {
 type ValidationError struct {
 	message string
 }
+
+var validationError *ValidationError
 
 func (e *ValidationError) Error() string {
 	return e.message
@@ -45,6 +49,8 @@ func NewValidationError(message string) *ValidationError {
 type NotFoundError struct {
 	message string
 }
+
+var notFoundError *NotFoundError
 
 func (e *NotFoundError) Error() string {
 	return e.message
