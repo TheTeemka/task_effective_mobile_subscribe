@@ -17,7 +17,8 @@ go install github.com/pressly/goose/v3/cmd/goose@latest
 ```bash
 export PSQL_SOURCE="postgres://user:pass@localhost:5432/subs_db?sslmode=disable"
 export PORT=8080
-export LOG_LEVEL=DEBUG  # trace|debug|info|warn|error
+export LOG_LEVEL=DEBUG  # DEBUG|INFO|WARN|ERROR
+
 ```
 
 4. Run database migrations (example using `goose`):
