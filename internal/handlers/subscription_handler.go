@@ -41,10 +41,8 @@ func (h *SubscriptionHandler) CreateSubscription(c *gin.Context) {
 	slog.Info("Parsed subscription creation request", "user_id", req.UserID, "service_name", req.ServiceName, "price", req.Price, "start_date", req.StartDate, "end_date", req.EndDate)
 
 	if err := h.SubService.Create(&req); err != nil {
-		if merrors.ErrorsToHTTP(err) == http.StatusInternalServerError {
-			slog.Error("Failed to create subscription", "error", err)
-		}
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		slog.Error("Failed to create subscription", "path", c.Request.URL.Path, "status", merrors.ErrorsToHTTP(err), "error", err)
+		merrors.GinReturnError(c, err)
 		return
 	}
 
@@ -74,10 +72,8 @@ func (h *SubscriptionHandler) GetSubscription(c *gin.Context) {
 
 	sub, err := h.SubService.GetByID(id)
 	if err != nil {
-		if merrors.ErrorsToHTTP(err) == http.StatusInternalServerError {
-			slog.Error("Failed to get subscription", "id", id, "error", err)
-		}
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		slog.Error("Failed to get subscription", "path", c.Request.URL.Path, "id", id, "status", merrors.ErrorsToHTTP(err), "error", err)
+		merrors.GinReturnError(c, err)
 		return
 	}
 
@@ -115,11 +111,8 @@ func (h *SubscriptionHandler) UpdateSubscription(c *gin.Context) {
 	slog.Info("Parsed subscription update request", "user_id", sub.UserID, "service_name", sub.ServiceName, "price", sub.Price, "start_date", sub.StartDate, "end_date", sub.EndDate)
 
 	if err := h.SubService.Update(id, &sub); err != nil {
-		if merrors.ErrorsToHTTP(err) == http.StatusInternalServerError {
-			slog.Error("Failed to update subscription", "id", id, "error", err)
-		}
-
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		slog.Error("Failed to update subscription", "path", c.Request.URL.Path, "id", id, "status", merrors.ErrorsToHTTP(err), "error", err)
+		merrors.GinReturnError(c, err)
 		return
 	}
 
@@ -147,10 +140,8 @@ func (h *SubscriptionHandler) DeleteSubscription(c *gin.Context) {
 	}
 
 	if err := h.SubService.Delete(id); err != nil {
-		if merrors.ErrorsToHTTP(err) == http.StatusInternalServerError {
-			slog.Error("Failed to delete subscription", "id", id, "error", err)
-		}
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		slog.Error("Failed to delete subscription", "path", c.Request.URL.Path, "id", id, "status", merrors.ErrorsToHTTP(err), "error", err)
+		merrors.GinReturnError(c, err)
 		return
 	}
 
@@ -172,16 +163,14 @@ func (h *SubscriptionHandler) ListSubscriptions(c *gin.Context) {
 
 	filter, err := models.NewSubscriptionFilterFromURL(c.Request.URL.Query())
 	if err != nil {
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		merrors.GinReturnError(c, err)
 		return
 	}
 
 	subs, err := h.SubService.GetByFilters(filter)
 	if err != nil {
-		if merrors.ErrorsToHTTP(err) == http.StatusInternalServerError {
-			slog.Error("Failed to list subscriptions", "query", c.Request.URL.RawQuery, "error", err)
-		}
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		slog.Error("Failed to list subscriptions", "path", c.Request.URL.Path, "status", merrors.ErrorsToHTTP(err), "query", c.Request.URL.RawQuery, "error", err)
+		merrors.GinReturnError(c, err)
 		return
 	}
 
@@ -208,16 +197,15 @@ func (h *SubscriptionHandler) GetSum(c *gin.Context) {
 
 	filter, err := models.NewSubscriptionFilterFromURL(c.Request.URL.Query())
 	if err != nil {
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		merrors.GinReturnError(c, err)
 		return
 	}
 
 	sum, err := h.SubService.GetSum(filter)
 	if err != nil {
-		if merrors.ErrorsToHTTP(err) == http.StatusInternalServerError {
-			slog.Error("Failed to calculate subscription sum", "query", c.Request.URL.RawQuery, "error", err)
-		}
-		c.JSON(merrors.ErrorsToHTTP(err), gin.H{"error": err.Error()})
+		slog.Error("Failed to calculate subscription sum", "path", c.Request.URL.Path, "status", merrors.ErrorsToHTTP(err), "query", c.Request.URL.RawQuery, "error", err)
+
+		merrors.GinReturnError(c, err)
 		return
 	}
 

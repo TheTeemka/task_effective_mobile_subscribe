@@ -1,6 +1,10 @@
 package merrors
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
 
 func ErrorsToHTTP(err error) int {
 	switch err.(type) {
@@ -10,6 +14,19 @@ func ErrorsToHTTP(err error) int {
 		return http.StatusNotFound
 	default:
 		return http.StatusInternalServerError
+	}
+}
+
+type ErrorJson struct {
+	Error string `json:"error"`
+}
+
+func ErrorToResponseString(err error) string {
+	switch err.(type) {
+	case *ValidationError, *NotFoundError:
+		return err.Error()
+	default:
+		return "internal server error"
 	}
 }
 
@@ -35,4 +52,10 @@ func (e *NotFoundError) Error() string {
 
 func NewNotFoundErr(message string) *NotFoundError {
 	return &NotFoundError{message: message}
+}
+
+func GinReturnError(c *gin.Context, err error) {
+	status := ErrorsToHTTP(err)
+	c.JSON(status, ErrorJson{Error: ErrorToResponseString(err)})
+	c.Abort()
 }
