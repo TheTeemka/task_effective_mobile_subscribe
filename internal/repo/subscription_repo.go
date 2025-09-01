@@ -3,6 +3,7 @@ package repo
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/Masterminds/squirrel"
@@ -25,11 +26,15 @@ func (s *SubscriptionRepo) Create(subscription *models.SubscriptionModel) error 
 
 	_, err := s.DB.Exec(query, subscription.UserID,
 		subscription.Price, subscription.StartDate, subscription.EndDate, subscription.ServiceName)
-	return err
+
+	if err != nil {
+		return fmt.Errorf("failed to create subscription in database: %w", err)
+	}
+
+	return nil
 }
 
 func (s *SubscriptionRepo) GetByFilters(filters *models.SubscriptionFilter) ([]*models.SubscriptionModel, error) {
-
 	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).
 		Select("id, user_id, price, start_date, end_date, service_name").
 		From("subscriptions")
@@ -37,15 +42,14 @@ func (s *SubscriptionRepo) GetByFilters(filters *models.SubscriptionFilter) ([]*
 	builder = filters.ToSQL(builder)
 
 	query, args, err := builder.ToSql()
-	slog.Info("GetByFilters query", "query", query, "args", args)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build SQL query for subscriptions: %w", err)
 	}
+	slog.Debug("GetByFilters query", "query", query, "args", args)
 
 	rows, err := s.DB.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to execute subscriptions query: %w", err)
 	}
 	defer rows.Close()
 
@@ -56,13 +60,13 @@ func (s *SubscriptionRepo) GetByFilters(filters *models.SubscriptionFilter) ([]*
 			&subscription.ID, &subscription.UserID, &subscription.Price,
 			&subscription.StartDate, &subscription.EndDate, &subscription.ServiceName)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan subscription row: %w", err)
 		}
 		subscriptions = append(subscriptions, subscription)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error iterating subscription rows: %w", err)
 	}
 
 	return subscriptions, nil
@@ -82,8 +86,9 @@ func (s *SubscriptionRepo) GetByID(ID int64) (*models.SubscriptionModel, error) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, merrors.NewNotFoundErr("subscription not found")
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get subscription by ID %d from database: %w", ID, err)
 	}
+
 	return subscription, nil
 }
 
@@ -97,32 +102,34 @@ func (s *SubscriptionRepo) Update(subscription *models.SubscriptionModel) error 
 		subscription.StartDate, subscription.EndDate, subscription.UserID,
 		subscription.ServiceName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update subscription in database: %w", err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get rows affected for subscription update: %w", err)
 	} else if rowsAffected == 0 {
 		return merrors.NewNotFoundErr("subscription not found")
 	}
-	return err
+
+	return nil
 }
 
 func (s *SubscriptionRepo) Delete(id int64) error {
 	query := `DELETE FROM subscriptions WHERE id = $1`
 	res, err := s.DB.Exec(query, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete subscription from database: %w", err)
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get rows affected for subscription deletion: %w", err)
 	} else if rowsAffected == 0 {
 		return merrors.NewNotFoundErr("subscription not found")
 	}
-	return err
+
+	return nil
 }
 
 func (s *SubscriptionRepo) GetSum(filters *models.SubscriptionFilter) (float64, error) {
@@ -136,12 +143,13 @@ func (s *SubscriptionRepo) GetSum(filters *models.SubscriptionFilter) (float64, 
 
 	query, args, err := builder.ToSql()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to build SQL query for subscription sum: %w", err)
 	}
+	slog.Debug("GetByFilters query", "query", query, "args", args)
 
 	err = s.DB.QueryRow(query, args...).Scan(&sum)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to execute subscription sum query: %w", err)
 	}
 
 	return sum, nil

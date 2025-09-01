@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 
+	_ "github.com/TheTeemka/task_effective_mobile_subscribe/docs"
 	"github.com/TheTeemka/task_effective_mobile_subscribe/internal/config"
 	"github.com/TheTeemka/task_effective_mobile_subscribe/internal/database"
 	"github.com/TheTeemka/task_effective_mobile_subscribe/internal/handlers"
@@ -15,18 +16,20 @@ import (
 )
 
 func main() {
+	slog.Info("Loading configuration")
 	cfg := config.LoadConfig()
+	slog.Info("Configuration loaded successfully", "logLevel", cfg.LogLevel, "port", cfg.Port)
 
-	logging.SetSlog(cfg.Stage)
+	logging.SetSlog(cfg.LogLevel)
 
 	db := database.NewPSQLConnection(cfg.PSQLSource)
-	slog.Info("Connected to psql database")
 
 	repo := repo.NewSubscriptionRepo(db)
 	svc := services.NewSubscriptionService(repo)
 	handler := handlers.NewSubscriptionHandler(svc)
 
 	r := gin.Default()
+
 	api := r.Group("/api/subscriptions")
 	{
 		api.GET("/", handler.ListSubscriptions)
@@ -36,8 +39,10 @@ func main() {
 		api.PATCH("/:id", handler.UpdateSubscription)
 		api.DELETE("/:id", handler.DeleteSubscription)
 	}
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	slog.Info("Starting server", "port", cfg.Port, "stage", cfg.Stage)
+	slog.Info("Starting server", "port", cfg.Port)
+
 	r.Run(cfg.Port)
 }

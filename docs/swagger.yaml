@@ -1,0 +1,276 @@
+definitions:
+  models.SubscriptionCreateReq:
+    properties:
+      end_date:
+        type: string
+      price:
+        type: number
+      service_name:
+        type: string
+      start_date:
+        type: string
+      user_id:
+        type: string
+    required:
+    - price
+    - service_name
+    - start_date
+    - user_id
+    type: object
+  models.SubscriptionModel:
+    properties:
+      endDate:
+        type: string
+      id:
+        format: int64
+        type: integer
+      price:
+        format: float64
+        type: number
+      serviceName:
+        type: string
+      startDate:
+        type: string
+      userID:
+        type: string
+    type: object
+  models.SubscriptionUpdateReq:
+    properties:
+      end_date:
+        type: string
+      price:
+        type: number
+      service_name:
+        type: string
+      start_date:
+        type: string
+      user_id:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/subscriptions:
+    get:
+      description: Retrieve all subscriptions for a user
+      parameters:
+      - description: User ID (UUID)
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SubscriptionModel'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List subscriptions by user ID
+      tags:
+      - subscriptions
+    post:
+      consumes:
+      - application/json
+      description: Create a subscription with service name, price, user ID, start
+        date, and optional end date
+      parameters:
+      - description: Subscription data
+        in: body
+        name: subscription
+        required: true
+        schema:
+          $ref: '#/definitions/models.SubscriptionCreateReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new subscription
+      tags:
+      - subscriptions
+  /api/subscriptions/{id}:
+    delete:
+      description: Delete a subscription by ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete subscription
+      tags:
+      - subscriptions
+    get:
+      description: Retrieve a subscription by its ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SubscriptionModel'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get subscription by ID
+      tags:
+      - subscriptions
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing subscription by ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated subscription data
+        in: body
+        name: subscription
+        required: true
+        schema:
+          $ref: '#/definitions/models.SubscriptionUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update subscription
+      tags:
+      - subscriptions
+  /api/subscriptions/sum:
+    get:
+      description: Calculate total cost of subscriptions with optional filters
+      parameters:
+      - description: User ID (UUID)
+        in: query
+        name: user_id
+        type: string
+      - description: Service name
+        in: query
+        name: name
+        type: string
+      - description: Start date (MM-YYYY)
+        in: query
+        name: from
+        type: string
+      - description: End date (MM-YYYY)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: sum
+          schema:
+            additionalProperties:
+              format: float64
+              type: number
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get sum of subscription costs
+      tags:
+      - subscriptions
+swagger: "2.0"

@@ -1,24 +1,22 @@
 package config
 
 import (
-	"flag"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Stage      string
+	LogLevel   string `mapstructure:"LOG_LEVEL" validate:"required,oneof=DEBUG INFO WARN ERROR"`
 	PSQLSource string `mapstructure:"PSQL_SOURCE" validate:"required"`
 	Port       string `mapstructure:"PORT" validate:"required"`
 }
 
 func LoadConfig() *Config {
 	godotenv.Load(".env")
+
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
-
 	if err := viper.ReadInConfig(); err != nil {
 		panic(err)
 	}
@@ -30,12 +28,7 @@ func LoadConfig() *Config {
 
 	validate := validator.New()
 	if err := validate.Struct(cfg); err != nil {
-		panic("config validation failed: " + err.Error())
+		panic(err)
 	}
-
-	stage := flag.String("stage", "dev", "Environment stage (dev, prod)")
-	flag.Parse()
-	cfg.Stage = *stage
-
 	return &cfg
 }

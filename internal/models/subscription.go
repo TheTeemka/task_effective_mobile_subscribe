@@ -99,15 +99,23 @@ func (s *SubscriptionUpdateReq) Validate() error {
 		return merrors.NewValidationError("user_id cannot be nil")
 	}
 
-	if s.StartDate != nil && s.EndDate != nil {
-		startDate, err := time.Parse(TimeFormat, *s.StartDate)
+	var startDate, endDate time.Time
+	var err error
+	if s.StartDate != nil {
+		startDate, err = time.Parse(TimeFormat, *s.StartDate)
 		if err != nil {
 			return merrors.NewValidationError("invalid start_date format (expected MM-YYYY)")
 		}
-		endDate, err := time.Parse(TimeFormat, *s.EndDate)
+
+	}
+	if s.EndDate != nil {
+		endDate, err = time.Parse(TimeFormat, *s.EndDate)
 		if err != nil {
 			return merrors.NewValidationError("invalid end_date format (expected MM-YYYY)")
 		}
+	}
+
+	if !startDate.IsZero() && !endDate.IsZero() {
 		if endDate.Before(startDate) {
 			return merrors.NewValidationError("end_date must be after start_date")
 		}

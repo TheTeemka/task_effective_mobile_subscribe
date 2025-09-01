@@ -7,21 +7,20 @@ import (
 	"path/filepath"
 )
 
-const (
-	StageDev  = "dev"
-	StageProd = "prod"
-)
-
 func SetSlog(stage string) {
 
 	var l slog.Level
 	var w io.Writer = os.Stdout
 
 	switch stage {
-	case StageDev:
+	case slog.LevelDebug.String():
 		l = slog.LevelDebug
-	case StageProd:
+	case slog.LevelWarn.String():
+		l = slog.LevelWarn
+	case slog.LevelInfo.String():
 		l = slog.LevelInfo
+	case slog.LevelError.String():
+		l = slog.LevelError
 	default:
 		panic("Unknown stage")
 	}
